@@ -1,0 +1,219 @@
+from pathlib import Path
+import zipfile, textwrap, json
+
+root = Path("/mnt/data/_CE_Work_Management_System")
+root.mkdir(parents=True, exist_ok=True)
+
+files = {
+"index.html": r'''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title> CE Work Management System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark"></div><div><b>CE Control Center</b><small>Work Management</small></div></div>
+    <nav id="nav">
+      <button data-page="dashboard" class="active">📊 Dashboard</button>
+      <button data-page="calls">📞 Calls</button>
+      <button data-page="parts">📦 Parts</button>
+      <button data-page="returns">🔄 Returns</button>
+      <button data-page="guides">📝 Closeout Guides</button>
+      <button data-page="communication">💬 Communication</button>
+      <button data-page="calendar">📅 Calendar</button>
+      <button data-page="reports">📈 Reports</button>
+      <button data-page="settings">⚙️ Settings</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <button id="modeBtn" class="standby-btn">🟢 Normal Mode</button>
+      <button id="backupBtn">⬇ Backup Data</button>
+      <label class="import-btn">⬆ Restore Data<input id="restoreInput" type="file" accept=".json"></label>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="today"></p>
+      </div>
+      <div class="top-actions">
+        <button id="quickAdd" class="primary">＋ Add Call</button>
+        <span id="modeBadge" class="badge success">NORMAL</span>
+      </div>
+    </header>
+    <section id="content"></section>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle"></h2><button onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
+<div id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>''',
+
+"style.css": r'''*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#182230}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.sidebar{position:fixed;left:0;top:0;bottom:0;width:245px;background:#111827;color:#dbe4ef;padding:18px;display:flex;flex-direction:column}.brand{display:flex;gap:10px;align-items:center;padding:8px 4px 20px}.brand-mark{width:42px;height:42px;border-radius:11px;background:#2563eb;display:grid;place-items:center;font-weight:800;color:white}.brand b{display:block;color:white}.brand small{color:#94a3b8}.sidebar nav{display:grid;gap:5px}.sidebar nav button,.sidebar-bottom button,.import-btn{background:transparent;color:#cbd5e1;text-align:left;padding:11px 12px;border-radius:9px}.sidebar nav button:hover,.sidebar nav button.active,.sidebar-bottom button:hover,.import-btn:hover{background:#1f2937;color:#fff}.sidebar-bottom{margin-top:auto;display:grid;gap:6px}.standby-btn{border:1px solid #334155!important}.import-btn{display:block;cursor:pointer}.import-btn input{display:none}.main{margin-left:245px;min-height:100vh}.topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:4}.topbar h1{margin:0;font-size:24px}.topbar p{margin:4px 0 0;color:#64748b}.top-actions{display:flex;gap:10px;align-items:center}.primary{background:#2563eb;color:white;padding:10px 15px;border-radius:8px}.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700}.success{background:#dcfce7;color:#166534}.danger{background:#fee2e2;color:#991b1b}.warning{background:#fef3c7;color:#92400e}.info{background:#dbeafe;color:#1e40af}.content-grid{padding:24px 28px;display:grid;gap:18px}.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:17px;box-shadow:0 1px 2px #00000008}.metric small{color:#64748b}.metric strong{display:block;font-size:28px;margin-top:7px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px}.panel h2{margin:0 0 14px;font-size:17px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:left;white-space:nowrap;font-size:13px}.table th{color:#64748b;background:#f8fafc}.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}.toolbar input,.toolbar select,.form input,.form select,.form textarea{border:1px solid #d6dde7;border-radius:8px;padding:9px;background:white;width:100%}.toolbar input{max-width:300px}.btn{padding:8px 11px;border-radius:7px;background:#eef2f7}.btn.primary{background:#2563eb;color:#fff}.btn.danger{background:#fee2e2;color:#991b1b}.btn.success{background:#dcfce7;color:#166534}.form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field label{display:block;font-size:12px;color:#64748b;margin-bottom:5px}.field.full{grid-column:1/-1}.modal{position:fixed;inset:0;background:#0f172a99;display:grid;place-items:center;padding:20px;z-index:20}.modal.hidden{display:none}.modal-card{background:#fff;border-radius:14px;width:min(850px,100%);max-height:90vh;overflow:auto}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px;border-bottom:1px solid #e5e7eb}.modal-head h2{margin:0}.modal-head button{font-size:25px;background:none}.modal-card #modalBody{padding:18px}.actions{display:flex;gap:7px;flex-wrap:wrap}.checklist{display:grid;gap:8px}.checkitem{display:flex;gap:8px;align-items:flex-start;padding:9px;background:#f8fafc;border-radius:8px}.timeline{display:grid;gap:8px}.timeline div{padding:10px;border-left:3px solid #2563eb;background:#f8fafc}.empty{padding:25px;text-align:center;color:#64748b}.closeout{white-space:pre-wrap;background:#f8fafc;padding:14px;border-radius:8px}.statline{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #edf0f4}.progress{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden}.progress span{display:block;height:100%;background:#2563eb}.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.day{background:#fff;border:1px solid #e5e7eb;border-radius:8px;min-height:100px;padding:8px}.day b{font-size:12px}.event{margin-top:5px;padding:5px;background:#dbeafe;color:#1e40af;border-radius:5px;font-size:11px}.template{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:10px}.template h3{margin:0 0 7px}.muted{color:#64748b}.danger-text{color:#b91c1c;font-weight:700}@media(max-width:1000px){.sidebar{width:190px}.main{margin-left:190px}.cards{grid-template-columns:repeat(3,1fr)}}@media(max-width:700px){.sidebar{position:static;width:100%;height:auto}.sidebar nav{grid-template-columns:repeat(3,1fr)}.sidebar-bottom{display:none}.main{margin-left:0}.topbar{padding:14px;position:static}.top-actions{flex-direction:column;align-items:flex-end}.content-grid{padding:14px}.cards{grid-template-columns:repeat(2,1fr)}.grid2,.form{grid-template-columns:1fr}.field.full{grid-column:auto}.calendar{grid-template-columns:1fr}.day{min-height:60px}.brand{padding-bottom:10px}}''',
+
+"app.js": r'''const KEY="_ce_v1";
+const defaultGuides=[
+ {id:"g1",name:"Card Reader Replacement",type:"Card Reader Replacement",items:["Confirm fault","Record old serial number","Install replacement card reader","Check connections","Run diagnostics","Test card insertion","Perform test transaction","Verify machine online","Record new serial number","Create old-part return record","Capture required photos","Update OFS","Complete closeout"]},
+ {id:"g2",name:"EPP Replacement",type:"EPP Replacement",items:["Confirm EPP fault","Record old EPP serial","Install replacement EPP","Check connections","Power ON","Verify encryption/key status","Run diagnostics","Perform test transaction","Confirm machine online","Record new serial number","Create old-part return record","Update OFS","Complete closeout"]},
+ {id:"g3",name:"Preventive Maintenance",type:"Preventive Maintenance",items:["Clean machine","Clean card reader","Clean dispenser","Clean transport","Clean sensors","Inspect modules","Check cables and connectors","Run diagnostics","Test transactions","Record findings","Record required parts","Capture photos","Update OFS","Close call"]},
+ {id:"g4",name:"Software Reload / Configuration",type:"Software Reload",items:["Confirm software issue","Backup/configuration confirmed","Reload software","Verify parameters","Verify encryption/key status","Complete full download","Run diagnostics","Perform test transaction","Confirm machine online","Record software/version","Customer confirmation","Update OFS","Complete closeout"]}
+];
+const templates=[
+ {name:"Customer No-Show",text:"Dear Customer, our CE attended the site at the scheduled appointment time. The local contact/customer was not available, so the activity could not be completed. Kindly confirm a new appointment and ensure access/contact availability to avoid a repeat visit."},
+ {name:"Parts Request",text:"Dear Team, please arrange the required replacement part for SR {SR}. Part: {PART}. Reason: {REASON}. Kindly confirm availability and expected collection/delivery time."},
+ {name:"Parts Return",text:"Dear Logistics Team, the removed part from SR {SR} is ready for return. Part: {PART}, Serial: {SERIAL}. Kindly confirm receipt/return reference."},
+ {name:"SLA / Access Escalation",text:"Dear Team, the activity for SR {SR} was affected by {REASON}. The CE attended/was available as required, however the activity could not proceed. Please update the SLA/appointment as applicable and confirm the next action."}
+];
+let db=load();
+let page="dashboard";
+
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d)return d}catch(e){}return {calls:[],parts:[],returns:[],guides:defaultGuides,logs:[],mode:"normal"}}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function fmt(d){return d?new Date(d).toLocaleString(): "-"}
+function toast(s){const x=document.getElementById("toast");x.textContent=s;x.style.cssText="position:fixed;right:20px;bottom:20px;background:#111827;color:white;padding:12px 16px;border-radius:8px;z-index:99";setTimeout(()=>x.textContent="",2500)}
+function statusBadge(s){let c=s==="Completed"||s==="Closed"?"success":s==="Waiting Parts"||s==="Waiting Customer"||s==="Part Received"?"warning":s==="Urgent"?"danger":"info";return `<span class="badge ${c}">${esc(s)}</span>`}
+function render(){document.getElementById("pageTitle").textContent=page[0].toUpperCase()+page.slice(1).replaceAll("-"," ");document.getElementById("today").textContent=new Date().toLocaleString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"});document.getElementById("modeBadge").textContent=db.mode.toUpperCase();document.getElementById("modeBadge").className="badge "+(db.mode==="standby"?"danger":"success");document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));({dashboard, calls, parts, returns, guides, communication, calendar, reports, settings}[page])()}
+document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});
+document.getElementById("quickAdd").onclick=()=>addCall();
+document.getElementById("modeBtn").onclick=()=>{db.mode=db.mode==="normal"?"standby":"normal";save();render();toast("Mode changed")};
+document.getElementById("backupBtn").onclick=()=>download("-ce-backup.json",JSON.stringify(db,null,2),"application/json");
+document.getElementById("restoreInput").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{db=JSON.parse(r.result);save();render();toast("Backup restored")}catch(x){toast("Invalid backup")}};r.readAsText(f)};
+
+function dashboard(){
+ const today=new Date().toISOString().slice(0,10), tc=db.calls.filter(x=>(x.appointment||"").slice(0,10)===today).length;
+ const pending=db.calls.filter(x=>!["Completed","Closed"].includes(x.status)).length;
+ const sla=db.calls.filter(x=>x.sla && !["Completed","Closed"].includes(x.status) && new Date(x.sla)<new Date()).length;
+ const parts=db.parts.filter(x=>["Requested","Preparing","Ready","Collected"].includes(x.status)).length;
+ const ret=db.returns.filter(x=>x.status!=="Returned").length;
+ const co=db.calls.filter(x=>x.status==="Closeout").length;
+ document.getElementById("content").innerHTML=`<div class="content-grid">
+ <div class="cards">
+ ${metric("📞","Today's Calls",tc)}${metric("⏳","Pending Calls",pending)}${metric("⚠️","SLA Alerts",sla)}${metric("📦","Parts Pending",parts)}${metric("🔄","Returns Pending",ret)}${metric("📝","Closeouts",co)}
+ </div>
+ <div class="grid2"><div class="panel"><h2>Today's Calls</h2>${callTable(db.calls.filter(x=>(x.appointment||"").slice(0,10)===today).slice(0,10))}</div>
+ <div class="panel"><h2>Action Required</h2>${actionList()}</div></div>
+ <div class="panel"><h2>Quick Actions</h2><div class="actions"><button class="btn primary" onclick="addCall()">＋ Add Call</button><button class="btn" onclick="addPart()">📦 Add Part Request</button><button class="btn" onclick="addReturn()">🔄 Add Return</button><button class="btn" onclick="addGuide()">📝 Add Guide</button></div></div>
+ </div>`;
+}
+function metric(i,t,n){return `<div class="card metric"><small>${i} ${t}</small><strong>${n}</strong></div>`}
+function actionList(){let a=[];db.calls.filter(x=>!["Completed","Closed"].includes(x.status)).slice(0,6).forEach(x=>a.push(`<div class="statline"><span>${esc(x.sr)} — ${esc(x.status)}</span><b>${esc(x.nextAction||"Follow-up")}</b></div>`));db.returns.filter(x=>x.status!=="Returned").slice(0,3).forEach(x=>a.push(`<div class="statline"><span>Return ${esc(x.part)}</span><b class="danger-text">Pending</b></div>`));return a.join("")||`<div class="empty">No urgent actions 🎉</div>`}
+function callTable(arr){if(!arr.length)return `<div class="empty">No calls recorded.</div>`;return `<div class="table-wrap"><table class="table"><thead><tr><th>SR</th><th>Call</th><th>Appointment</th><th>Status</th><th></th></tr></thead><tbody>${arr.map(x=>`<tr><td>${esc(x.sr)}</td><td>${esc(x.type)}</td><td>${esc(fmt(x.appointment))}</td><td>${statusBadge(x.status)}</td><td><button class="btn" onclick="viewCall('${x.id}')">Open</button></td></tr>`).join("")}</tbody></table></div>`}
+
+function calls(){
+ document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><div class="toolbar"><input id="callSearch" placeholder="Search SR, customer, site..." oninput="filterCalls()"><select id="callStatus" onchange="filterCalls()"><option value="">All statuses</option><option>New</option><option>Confirmed</option><option>Traveling</option><option>Arrived</option><option>Troubleshooting</option><option>Waiting Parts</option><option>Waiting Customer</option><option>Part Received</option><option>Installation</option><option>Testing</option><option>Closeout</option><option>Completed</option><option>Closed</option></select><button class="btn primary" onclick="addCall()">＋ Add Call</button></div><div id="callsTable">${callTable(db.calls)}</div></div></div>`;
+}
+function filterCalls(){let q=document.getElementById("callSearch").value.toLowerCase(),s=document.getElementById("callStatus").value;let a=db.calls.filter(x=>(!s||x.status===s)&&JSON.stringify(x).toLowerCase().includes(q));document.getElementById("callsTable").innerHTML=callTable(a)}
+function addCall(existing={}){openModal(existing.id?"Edit Call":"Add Call",callForm(existing),()=>{const f=readForm("callForm");if(!f.sr)return toast("SR number is required");if(existing.id)Object.assign(db.calls.find(x=>x.id===existing.id),f);else db.calls.push({id:uid("c"),...f,created:new Date().toISOString(),checklist:[]});save();closeModal();render();toast("Call saved")})}
+function callForm(x={}){return `<form id="callForm" class="form">
+${field("SR Number","sr",x.sr)}${field("Call Type","type",x.type,"select",["ATM Fault","Card Reader Replacement","EPP Replacement","Preventive Maintenance","Software Reload","Cash Dispenser","Network/NIC","Other"])}
+${field("Customer","customer",x.customer)}${field("Site / Location","site",x.site)}${field("Appointment","appointment",x.appointment,"datetime-local")}${field("SLA","sla",x.sla,"datetime-local")}
+${field("Priority","priority",x.priority||"Normal","select",["Normal","Urgent","High","Low"])}${field("Status","status",x.status||"New","select",["New","Confirmed","Traveling","Arrived","Troubleshooting","Waiting Parts","Waiting Customer","Part Received","Installation","Testing","Closeout","Completed","Closed"])}
+${field("Customer Contact","contact",x.contact)}${field("Parts Required","partsRequired",x.partsRequired)}${field("Next Action","nextAction",x.nextAction)}${field("Next Follow-up","followup",x.followup,"datetime-local")}
+${field("Diagnosis / Action Taken","action",x.action,"textarea",[],"full")}${field("Remarks","remarks",x.remarks,"textarea",[],"full")}
+</form>`}
+function viewCall(id){const x=db.calls.find(c=>c.id===id);if(!x)return;const guide=db.guides.find(g=>g.type===x.type)||db.guides.find(g=>x.type?.toLowerCase().includes(g.type?.toLowerCase()));let checks=x.checklist||guide?.items.map(()=>false)||[];openModal("Call "+x.sr,`<div class="actions"><button class="btn primary" onclick="addCall(db.calls.find(c=>c.id==='${id}'))">✏ Edit</button><button class="btn" onclick="copyCloseout('${id}')">📋 Copy Closeout</button><button class="btn" onclick="printCall('${id}')">🖨 Print</button></div><hr><div class="grid2"><div><div class="statline"><span>Customer</span><b>${esc(x.customer)}</b></div><div class="statline"><span>Site</span><b>${esc(x.site)}</b></div><div class="statline"><span>Type</span><b>${esc(x.type)}</b></div><div class="statline"><span>Status</span><b>${statusBadge(x.status)}</b></div><div class="statline"><span>Appointment</span><b>${esc(fmt(x.appointment))}</b></div></div><div><h3>Closeout Checklist</h3><div class="checklist">${(guide?.items||[]).map((it,i)=>`<label class="checkitem"><input type="checkbox" ${checks[i]?"checked":""} onchange="toggleCheck('${id}',${i},this.checked)"> ${esc(it)}</label>`).join("")||"<p>No guide assigned.</p>"}</div></div></div><h3>Closeout</h3><div class="closeout">${esc(generateCloseout(x,guide))}</div>`,`noop`)}
+function toggleCheck(id,i,v){let x=db.calls.find(c=>c.id===id);if(!x.checklist)x.checklist=[];x.checklist[i]=v;save();toast(v?"Checklist updated":"Checklist item unchecked")}
+function generateCloseout(x,guide){let lines=[];if(x.action)lines.push(x.action);lines.push(`SR ${x.sr}: ${x.type} activity completed at ${x.site||"site"}.`);if(x.partsRequired)lines.push(`Parts: ${x.partsRequired}.`);lines.push(`System/ATM status: ${x.status==="Completed"||x.status==="Closed"?"Operational / activity completed":"Pending — refer to current call status."}`);return lines.join(" ")}
+function copyCloseout(id){const x=db.calls.find(c=>c.id===id);navigator.clipboard?.writeText(generateCloseout(x));toast("Closeout copied")}
+function printCall(id){const x=db.calls.find(c=>c.id===id);let w=window.open("","_blank");w.document.write(`<h2>CE Call Closeout</h2><p>${esc(generateCloseout(x))}</p>`);w.print()}
+
+function parts(){
+ document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><div class="toolbar"><input id="partSearch" placeholder="Search part, SR, serial..." oninput="filterParts()"><button class="btn primary" onclick="addPart()">＋ Part Request</button></div><div id="partsTable">${partsTable(db.parts)}</div></div></div>`;
+}
+function partsTable(a){if(!a.length)return `<div class="empty">No part requests recorded.</div>`;return `<div class="table-wrap"><table class="table"><thead><tr><th>Request</th><th>SR</th><th>Part</th><th>Part No.</th><th>Qty</th><th>Status</th><th>Requested</th><th></th></tr></thead><tbody>${a.map(x=>`<tr><td>${esc(x.requestNo)}</td><td>${esc(x.sr)}</td><td>${esc(x.part)}</td><td>${esc(x.partNo)}</td><td>${x.qty}</td><td>${statusBadge(x.status)}</td><td>${esc(fmt(x.requestDate))}</td><td><button class="btn" onclick="addPart(db.parts.find(p=>p.id==='${x.id}'))">Edit</button></td></tr>`).join("")}</tbody></table></div>`}
+function filterParts(){let q=document.getElementById("partSearch").value.toLowerCase();document.getElementById("partsTable").innerHTML=partsTable(db.parts.filter(x=>JSON.stringify(x).toLowerCase().includes(q)))}
+function addPart(existing={}){openModal(existing.id?"Edit Part Request":"Part Request",`<form id="partForm" class="form">${field("Request No.","requestNo",existing.requestNo||("PR-"+Date.now().toString().slice(-6)))}${field("SR Number","sr",existing.sr)}${field("Part Description","part",existing.part)}${field("Part Number","partNo",existing.partNo)}${field("Quantity","qty",existing.qty||1,"number")}${field("Reason","reason",existing.reason)}${field("Request Date","requestDate",existing.requestDate||new Date().toISOString(),"datetime-local")}${field("Expected Date","expectedDate",existing.expectedDate,"datetime-local")}${field("Status","status",existing.status||"Requested","select",["Requested","Approved","Preparing","Ready","Collected","Delivered","Installed","Cancelled"])}${field("Received Date","receivedDate",existing.receivedDate,"datetime-local")}${field("New Serial","newSerial",existing.newSerial)}${field("Remarks","remarks",existing.remarks,"textarea",[],"full")}</form>`,()=>{const f=readForm("partForm");if(!f.sr||!f.part)return toast("SR and part are required");if(existing.id)Object.assign(db.parts.find(p=>p.id===existing.id),f);else db.parts.push({id:uid("p"),...f});save();closeModal();render();toast("Part saved")})}
+
+function returns(){
+ document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><div class="toolbar"><input id="retSearch" placeholder="Search return, SR, serial..." oninput="filterReturns()"><button class="btn primary" onclick="addReturn()">＋ Add Return</button></div><div id="retTable">${returnTable(db.returns)}</div></div></div>`;
+}
+function returnTable(a){if(!a.length)return `<div class="empty">No return records.</div>`;return `<div class="table-wrap"><table class="table"><thead><tr><th>Return</th><th>SR</th><th>Part</th><th>Old Serial</th><th>Status</th><th>Removed</th><th>Returned</th><th></th></tr></thead><tbody>${a.map(x=>`<tr><td>${esc(x.returnNo)}</td><td>${esc(x.sr)}</td><td>${esc(x.part)}</td><td>${esc(x.serial)}</td><td>${statusBadge(x.status)}</td><td>${esc(fmt(x.removedDate))}</td><td>${esc(fmt(x.returnedDate))}</td><td><button class="btn" onclick="addReturn(db.returns.find(r=>r.id==='${x.id}'))">Edit</button></td></tr>`).join("")}</tbody></table></div>`}
+function filterReturns(){let q=document.getElementById("retSearch").value.toLowerCase();document.getElementById("retTable").innerHTML=returnTable(db.returns.filter(x=>JSON.stringify(x).toLowerCase().includes(q)))}
+function addReturn(existing={}){openModal(existing.id?"Edit Return":"Part Return",`<form id="returnForm" class="form">${field("Return No.","returnNo",existing.returnNo||("RT-"+Date.now().toString().slice(-6)))}${field("SR Number","sr",existing.sr)}${field("Part","part",existing.part)}${field("Part Number","partNo",existing.partNo)}${field("Old Serial","serial",existing.serial)}${field("New Serial","newSerial",existing.newSerial)}${field("Removed Date","removedDate",existing.removedDate||new Date().toISOString(),"datetime-local")}${field("Status","status",existing.status||"Ready for Return","select",["Ready for Return","Packed","Collected","Returned","Received by Logistics"])}${field("Return Date","returnedDate",existing.returnedDate,"datetime-local")}${field("Received By","receivedBy",existing.receivedBy)}${field("Logistics Reference","logRef",existing.logRef)}${field("Condition","condition",existing.condition,"select",["Used","Defective","Damaged","Good","Unknown"])}${field("Remarks","remarks",existing.remarks,"textarea",[],"full")}</form>`,()=>{const f=readForm("returnForm");if(!f.sr||!f.part)return toast("SR and part are required");if(existing.id)Object.assign(db.returns.find(r=>r.id===existing.id),f);else db.returns.push({id:uid("r"),...f});save();closeModal();render();toast("Return saved")})}
+
+function guides(){
+ document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><div class="toolbar"><button class="btn primary" onclick="addGuide()">＋ New Guide</button></div>${db.guides.map(g=>`<div class="template"><h3>${esc(g.name)}</h3><p class="muted">Call type: ${esc(g.type)} · ${g.items.length} steps</p><div class="actions"><button class="btn" onclick="viewGuide('${g.id}')">View</button><button class="btn" onclick="addGuide(db.guides.find(x=>x.id==='${g.id}'))">Edit</button></div></div>`).join("")}</div></div>`;
+}
+function viewGuide(id){let g=db.guides.find(x=>x.id===id);openModal(g.name,`<div class="checklist">${g.items.map(i=>`<div class="checkitem">☐ ${esc(i)}</div>`).join("")}</div>`,"noop")}
+function addGuide(existing={}){openModal(existing.id?"Edit Guide":"New Closeout Guide",`<form id="guideForm" class="form">${field("Guide Name","name",existing.name)}${field("Call Type","type",existing.type)}${field("Checklist Items","items",(existing.items||[]).join("\\n"),"textarea",[],"full")}</form>`,()=>{let f=readForm("guideForm");f.items=f.items.split("\\n").map(x=>x.trim()).filter(Boolean);if(!f.name||!f.type||!f.items.length)return toast("Complete guide fields");if(existing.id)Object.assign(db.guides.find(g=>g.id===existing.id),f);else db.guides.push({id:uid("g"),...f});save();closeModal();render();toast("Guide saved")})}
+
+function communication(){
+ document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><h2>Message Templates</h2>${templates.map((t,i)=>`<div class="template"><h3>${esc(t.name)}</h3><p>${esc(t.text)}</p><div class="actions"><button class="btn primary" onclick="copyTemplate(${i})">Copy</button></div></div>`).join("")}</div></div>`;
+}
+function copyTemplate(i){navigator.clipboard?.writeText(templates[i].text);toast("Template copied")}
+function calendar(){
+ let d=new Date(), first=new Date(d.getFullYear(),d.getMonth(),1), last=new Date(d.getFullYear(),d.getMonth()+1,0),days=[];for(let i=0;i<first.getDay();i++)days.push(`<div></div>`);for(let n=1;n<=last.getDate();n++){let date=new Date(d.getFullYear(),d.getMonth(),n).toISOString().slice(0,10),ev=db.calls.filter(c=>(c.appointment||"").slice(0,10)===date).slice(0,3);days.push(`<div class="day"><b>${n}</b>${ev.map(x=>`<div class="event">${esc(x.sr)} · ${esc(x.type)}</div>`).join("")}</div>`)}document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><h2>${d.toLocaleString(undefined,{month:"long",year:"numeric"})}</h2><div class="calendar">${days.join("")}</div></div></div>`;
+}
+function reports(){
+ let completed=db.calls.filter(x=>["Completed","Closed"].includes(x.status)).length, total=db.calls.length, installs=db.parts.filter(x=>x.status==="Installed").length, returned=db.returns.filter(x=>x.status==="Returned"||x.status==="Received by Logistics").length;
+ document.getElementById("content").innerHTML=`<div class="content-grid"><div class="cards">${metric("📞","Total Calls",total)}${metric("🟢","Completed",completed)}${metric("📦","Installed Parts",installs)}${metric("🔄","Returned Parts",returned)}</div><div class="grid2"><div class="panel"><h2>Call Status</h2>${["New","Confirmed","Traveling","Arrived","Troubleshooting","Waiting Parts","Waiting Customer","Testing","Closeout","Completed","Closed"].map(s=>{let n=db.calls.filter(x=>x.status===s).length,p=total?n/total*100:0;return `<div class="statline"><span>${s}</span><b>${n}</b></div><div class="progress"><span style="width:${p}%"></span></div>`}).join("")}</div><div class="panel"><h2>Parts & Returns</h2><div class="statline"><span>Requests</span><b>${db.parts.length}</b></div><div class="statline"><span>Pending returns</span><b>${db.returns.filter(x=>x.status!=="Returned"&&x.status!=="Received by Logistics").length}</b></div><div class="statline"><span>Completed returns</span><b>${returned}</b></div></div></div></div>`;
+}
+function settings(){
+ document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><h2>System Settings</h2><p class="muted">Data is stored in this browser using local storage. Use Backup Data regularly to protect your records.</p><div class="actions"><button class="btn primary" onclick="download('-ce-template.json',JSON.stringify({calls:[],parts:[],returns:[],guides:defaultGuides,logs:[],mode:'normal'},null,2),'application/json')">Download Empty Template</button><button class="btn danger" onclick="clearData()">Reset All Data</button></div></div></div>`;
+}
+function clearData(){if(confirm("Delete all locally stored CE data?")){localStorage.removeItem(KEY);db=load();render();toast("Data reset")}}
+function field(label,name,val="",type="text",options=[],extra=""){let v=val||"";if(type==="select")return `<div class="field ${extra}"><label>${label}</label><select name="${name}">${options.map(o=>`<option ${String(o)===String(v)?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;return `<div class="field ${extra}"><label>${label}</label>${type==="textarea"?`<textarea name="${name}" rows="4">${esc(v)}</textarea>`:`<input type="${type}" name="${name}" value="${esc(v)}">`}</div>`}
+function readForm(id){let o={};new FormData(document.getElementById(id)).forEach((v,k)=>o[k]=v);return o}
+function openModal(title,body,onSave){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body+(onSave!=="noop"?`<div class="actions" style="margin-top:16px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="modalSave">Save</button></div>`:"");document.getElementById("modal").classList.remove("hidden");if(onSave!=="noop")document.getElementById("modalSave").onclick=onSave}
+function closeModal(){document.getElementById("modal").classList.add("hidden")}
+function download(name,data,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+render();''',
+
+"README.md": r'''#  Customer Engineer Work Management System
+
+A mobile-friendly, browser-based personal work control system for Customer Engineers.
+
+## Modules
+
+- Dashboard
+- Call management
+- Parts request/logistics tracking
+- Parts return tracking
+- Serial-number traceability
+- Closeout guides and checklists
+- Closeout text generation
+- WhatsApp/email templates
+- Calendar
+- Reports
+- Normal / Standby mode
+- JSON backup and restore
+- Offline-first local browser storage
+
+## Installation
+
+No server is required.
+
+1. Upload `index.html`, `style.css`, and `app.js` to a GitHub repository.
+2. Enable GitHub Pages.
+3. Open the published page on your phone or PC.
+4. Use **Backup Data** regularly.
+
+## Important
+
+This application does not automatically access OFS, company email, or WhatsApp. It is intended as a personal control and documentation layer. Company systems should only be integrated through approved APIs/permissions.
+
+## Data
+
+Records are stored in the browser's local storage. Clearing browser site data can remove records. Always use Backup Data regularly.
+'''
+}
+
+for path, content in files.items():
+    (root/path).write_text(content, encoding="utf-8")
+
+zip_path = Path("/mnt/data/_CE_Work_Management_System.zip")
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+    for p in root.rglob("*"):
+        z.write(p, p.relative_to(root.parent))
+
+print(f"Created: {zip_path}")
+print("Files:", ", ".join(files))
