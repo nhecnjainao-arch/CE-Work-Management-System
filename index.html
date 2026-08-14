@@ -1,219 +1,178 @@
 from pathlib import Path
-import zipfile, textwrap, json
+import zipfile
 
-root = Path("/mnt/data/_CE_Work_Management_System")
-root.mkdir(parents=True, exist_ok=True)
+root = Path("/mnt/data/NVI_Parts_Management_System")
+root.mkdir(exist_ok=True)
 
-files = {
-"index.html": r'''<!doctype html>
+index = r'''<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title> CE Work Management System</title>
+<title>NVI Parts Management System</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app">
-  <aside class="sidebar">
-    <div class="brand"><div class="brand-mark"></div><div><b>CE Control Center</b><small>Work Management</small></div></div>
-    <nav id="nav">
-      <button data-page="dashboard" class="active">📊 Dashboard</button>
-      <button data-page="calls">📞 Calls</button>
-      <button data-page="parts">📦 Parts</button>
-      <button data-page="returns">🔄 Returns</button>
-      <button data-page="guides">📝 Closeout Guides</button>
-      <button data-page="communication">💬 Communication</button>
-      <button data-page="calendar">📅 Calendar</button>
-      <button data-page="reports">📈 Reports</button>
-      <button data-page="settings">⚙️ Settings</button>
-    </nav>
-    <div class="sidebar-bottom">
-      <button id="modeBtn" class="standby-btn">🟢 Normal Mode</button>
-      <button id="backupBtn">⬇ Backup Data</button>
-      <label class="import-btn">⬆ Restore Data<input id="restoreInput" type="file" accept=".json"></label>
-    </div>
-  </aside>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="logo">NVI</div><div><b>Parts Control</b><small>CE Logistics</small></div></div>
+  <nav>
+    <button class="nav active" data-page="dashboard">📊 Dashboard</button>
+    <button class="nav" data-page="parts">📦 Parts Register</button>
+    <button class="nav" data-page="requests">📋 Requests</button>
+    <button class="nav" data-page="receiving">🚚 Receiving</button>
+    <button class="nav" data-page="installation">🔧 Installation</button>
+    <button class="nav" data-page="returns">🔄 Returns</button>
+    <button class="nav" data-page="history">🔎 Part History</button>
+    <button class="nav" data-page="reports">📈 Reports</button>
+    <button class="nav" data-page="settings">⚙️ Settings</button>
+  </nav>
+  <div class="side-bottom">
+    <button id="backup">⬇ Backup Data</button>
+    <label class="restore">⬆ Restore Data<input id="restore" type="file" accept=".json"></label>
+  </div>
+</aside>
 
-  <main class="main">
-    <header class="topbar">
-      <div>
-        <h1 id="pageTitle">Dashboard</h1>
-        <p id="today"></p>
-      </div>
-      <div class="top-actions">
-        <button id="quickAdd" class="primary">＋ Add Call</button>
-        <span id="modeBadge" class="badge success">NORMAL</span>
-      </div>
-    </header>
-    <section id="content"></section>
-  </main>
+<main>
+<header>
+  <div><h1 id="title">Dashboard</h1><p id="date"></p></div>
+  <button class="primary" id="quickAdd">＋ Add Part</button>
+</header>
+<section id="content"></section>
+</main>
 </div>
 
-<div id="modal" class="modal hidden"><div class="modal-card"><div class="modal-head"><h2 id="modalTitle"></h2><button onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head"><h2 id="modalTitle"></h2><button onclick="closeModal()">×</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
 <div id="toast"></div>
 <script src="app.js"></script>
 </body>
-</html>''',
+</html>'''
 
-"style.css": r'''*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#182230}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.sidebar{position:fixed;left:0;top:0;bottom:0;width:245px;background:#111827;color:#dbe4ef;padding:18px;display:flex;flex-direction:column}.brand{display:flex;gap:10px;align-items:center;padding:8px 4px 20px}.brand-mark{width:42px;height:42px;border-radius:11px;background:#2563eb;display:grid;place-items:center;font-weight:800;color:white}.brand b{display:block;color:white}.brand small{color:#94a3b8}.sidebar nav{display:grid;gap:5px}.sidebar nav button,.sidebar-bottom button,.import-btn{background:transparent;color:#cbd5e1;text-align:left;padding:11px 12px;border-radius:9px}.sidebar nav button:hover,.sidebar nav button.active,.sidebar-bottom button:hover,.import-btn:hover{background:#1f2937;color:#fff}.sidebar-bottom{margin-top:auto;display:grid;gap:6px}.standby-btn{border:1px solid #334155!important}.import-btn{display:block;cursor:pointer}.import-btn input{display:none}.main{margin-left:245px;min-height:100vh}.topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:4}.topbar h1{margin:0;font-size:24px}.topbar p{margin:4px 0 0;color:#64748b}.top-actions{display:flex;gap:10px;align-items:center}.primary{background:#2563eb;color:white;padding:10px 15px;border-radius:8px}.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700}.success{background:#dcfce7;color:#166534}.danger{background:#fee2e2;color:#991b1b}.warning{background:#fef3c7;color:#92400e}.info{background:#dbeafe;color:#1e40af}.content-grid{padding:24px 28px;display:grid;gap:18px}.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:17px;box-shadow:0 1px 2px #00000008}.metric small{color:#64748b}.metric strong{display:block;font-size:28px;margin-top:7px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px}.panel h2{margin:0 0 14px;font-size:17px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:left;white-space:nowrap;font-size:13px}.table th{color:#64748b;background:#f8fafc}.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}.toolbar input,.toolbar select,.form input,.form select,.form textarea{border:1px solid #d6dde7;border-radius:8px;padding:9px;background:white;width:100%}.toolbar input{max-width:300px}.btn{padding:8px 11px;border-radius:7px;background:#eef2f7}.btn.primary{background:#2563eb;color:#fff}.btn.danger{background:#fee2e2;color:#991b1b}.btn.success{background:#dcfce7;color:#166534}.form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field label{display:block;font-size:12px;color:#64748b;margin-bottom:5px}.field.full{grid-column:1/-1}.modal{position:fixed;inset:0;background:#0f172a99;display:grid;place-items:center;padding:20px;z-index:20}.modal.hidden{display:none}.modal-card{background:#fff;border-radius:14px;width:min(850px,100%);max-height:90vh;overflow:auto}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px;border-bottom:1px solid #e5e7eb}.modal-head h2{margin:0}.modal-head button{font-size:25px;background:none}.modal-card #modalBody{padding:18px}.actions{display:flex;gap:7px;flex-wrap:wrap}.checklist{display:grid;gap:8px}.checkitem{display:flex;gap:8px;align-items:flex-start;padding:9px;background:#f8fafc;border-radius:8px}.timeline{display:grid;gap:8px}.timeline div{padding:10px;border-left:3px solid #2563eb;background:#f8fafc}.empty{padding:25px;text-align:center;color:#64748b}.closeout{white-space:pre-wrap;background:#f8fafc;padding:14px;border-radius:8px}.statline{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #edf0f4}.progress{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden}.progress span{display:block;height:100%;background:#2563eb}.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.day{background:#fff;border:1px solid #e5e7eb;border-radius:8px;min-height:100px;padding:8px}.day b{font-size:12px}.event{margin-top:5px;padding:5px;background:#dbeafe;color:#1e40af;border-radius:5px;font-size:11px}.template{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:10px}.template h3{margin:0 0 7px}.muted{color:#64748b}.danger-text{color:#b91c1c;font-weight:700}@media(max-width:1000px){.sidebar{width:190px}.main{margin-left:190px}.cards{grid-template-columns:repeat(3,1fr)}}@media(max-width:700px){.sidebar{position:static;width:100%;height:auto}.sidebar nav{grid-template-columns:repeat(3,1fr)}.sidebar-bottom{display:none}.main{margin-left:0}.topbar{padding:14px;position:static}.top-actions{flex-direction:column;align-items:flex-end}.content-grid{padding:14px}.cards{grid-template-columns:repeat(2,1fr)}.grid2,.form{grid-template-columns:1fr}.field.full{grid-column:auto}.calendar{grid-template-columns:1fr}.day{min-height:60px}.brand{padding-bottom:10px}}''',
+style = r'''*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#172033}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}.sidebar{position:fixed;inset:0 auto 0 0;width:245px;background:#111827;color:#dbe4ef;padding:18px;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}.logo{width:42px;height:42px;border-radius:11px;background:#2563eb;color:#fff;display:grid;place-items:center;font-weight:800}.brand b,.brand small{display:block}.brand small{color:#94a3b8;font-size:12px;margin-top:2px}.sidebar nav{display:grid;gap:5px}.nav,.side-bottom button,.restore{background:transparent;color:#cbd5e1;text-align:left;padding:11px 12px;border-radius:8px}.nav:hover,.nav.active,.side-bottom button:hover,.restore:hover{background:#1f2937;color:#fff}.side-bottom{margin-top:auto;display:grid;gap:5px}.restore{display:block;cursor:pointer}.restore input{display:none}main{margin-left:245px;min-height:100vh}header{background:#fff;border-bottom:1px solid #e5e7eb;padding:18px 28px;display:flex;justify-content:space-between;align-items:center}header h1{margin:0;font-size:24px}header p{margin:4px 0;color:#64748b}.primary{background:#2563eb;color:white;padding:10px 14px;border-radius:8px}.content{padding:24px 28px}.cards{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}.card,.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px}.metric small{color:#64748b}.metric strong{display:block;font-size:27px;margin-top:6px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.panel{margin-top:16px}.panel h2{margin:0 0 14px;font-size:17px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.toolbar input,.toolbar select{padding:9px;border:1px solid #d5dce6;border-radius:8px;background:white}.toolbar input{min-width:260px}.btn{padding:8px 11px;border-radius:7px;background:#eef2f7}.btn.primary{background:#2563eb;color:#fff}.btn.danger{background:#fee2e2;color:#991b1b}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px;border-bottom:1px solid #edf0f4;text-align:left;white-space:nowrap;font-size:13px}.table th{background:#f8fafc;color:#64748b}.badge{display:inline-block;padding:5px 8px;border-radius:99px;font-size:11px;font-weight:700}.blue{background:#dbeafe;color:#1e40af}.green{background:#dcfce7;color:#166534}.yellow{background:#fef3c7;color:#92400e}.red{background:#fee2e2;color:#991b1b}.gray{background:#e5e7eb;color:#374151}.stat{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #edf0f4}.empty{text-align:center;color:#64748b;padding:28px}.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field label{display:block;color:#64748b;font-size:12px;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;padding:9px;border:1px solid #d5dce6;border-radius:8px}.full{grid-column:1/-1}.actions{display:flex;gap:7px;flex-wrap:wrap}.modal{position:fixed;inset:0;background:#0f172a99;display:grid;place-items:center;padding:20px;z-index:20}.hidden{display:none}.modal-box{background:white;border-radius:14px;width:min(900px,100%);max-height:90vh;overflow:auto}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:17px 18px;border-bottom:1px solid #e5e7eb}.modal-head h2{margin:0}.modal-head button{background:none;font-size:25px}.modal-box #modalBody{padding:18px}.timeline{display:grid;gap:9px}.timeline div{border-left:3px solid #2563eb;background:#f8fafc;padding:10px}.flow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}.flow div{padding:10px 4px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:7px;text-align:center;font-size:11px}.closeout{white-space:pre-wrap;background:#f8fafc;padding:13px;border-radius:8px}.progress{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden}.progress span{display:block;height:100%;background:#2563eb}.search-result{padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin:8px 0}.danger-text{color:#b91c1c;font-weight:700}@media(max-width:1050px){.cards{grid-template-columns:repeat(4,1fr)}.sidebar{width:200px}main{margin-left:200px}}@media(max-width:700px){.sidebar{position:static;width:100%;height:auto}.sidebar nav{grid-template-columns:repeat(3,1fr)}.side-bottom{display:none}main{margin-left:0}header{padding:14px;position:static}.content{padding:14px}.cards{grid-template-columns:repeat(2,1fr)}.grid2,.form{grid-template-columns:1fr}.full{grid-column:auto}.flow{grid-template-columns:1fr}.modal{padding:8px}}'''
 
-"app.js": r'''const KEY="_ce_v1";
-const defaultGuides=[
- {id:"g1",name:"Card Reader Replacement",type:"Card Reader Replacement",items:["Confirm fault","Record old serial number","Install replacement card reader","Check connections","Run diagnostics","Test card insertion","Perform test transaction","Verify machine online","Record new serial number","Create old-part return record","Capture required photos","Update OFS","Complete closeout"]},
- {id:"g2",name:"EPP Replacement",type:"EPP Replacement",items:["Confirm EPP fault","Record old EPP serial","Install replacement EPP","Check connections","Power ON","Verify encryption/key status","Run diagnostics","Perform test transaction","Confirm machine online","Record new serial number","Create old-part return record","Update OFS","Complete closeout"]},
- {id:"g3",name:"Preventive Maintenance",type:"Preventive Maintenance",items:["Clean machine","Clean card reader","Clean dispenser","Clean transport","Clean sensors","Inspect modules","Check cables and connectors","Run diagnostics","Test transactions","Record findings","Record required parts","Capture photos","Update OFS","Close call"]},
- {id:"g4",name:"Software Reload / Configuration",type:"Software Reload",items:["Confirm software issue","Backup/configuration confirmed","Reload software","Verify parameters","Verify encryption/key status","Complete full download","Run diagnostics","Perform test transaction","Confirm machine online","Record software/version","Customer confirmation","Update OFS","Complete closeout"]}
-];
-const templates=[
- {name:"Customer No-Show",text:"Dear Customer, our CE attended the site at the scheduled appointment time. The local contact/customer was not available, so the activity could not be completed. Kindly confirm a new appointment and ensure access/contact availability to avoid a repeat visit."},
- {name:"Parts Request",text:"Dear Team, please arrange the required replacement part for SR {SR}. Part: {PART}. Reason: {REASON}. Kindly confirm availability and expected collection/delivery time."},
- {name:"Parts Return",text:"Dear Logistics Team, the removed part from SR {SR} is ready for return. Part: {PART}, Serial: {SERIAL}. Kindly confirm receipt/return reference."},
- {name:"SLA / Access Escalation",text:"Dear Team, the activity for SR {SR} was affected by {REASON}. The CE attended/was available as required, however the activity could not proceed. Please update the SLA/appointment as applicable and confirm the next action."}
-];
-let db=load();
-let page="dashboard";
-
-function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d)return d}catch(e){}return {calls:[],parts:[],returns:[],guides:defaultGuides,logs:[],mode:"normal"}}
+app = r'''const KEY="nvi_parts_v1";
+const statuses=["Requested","Approved","Preparing","Ready","Collected","Received","Installed","Return Required","Returned","Received by Logistics","Cancelled"];
+let db=load(), page="dashboard";
+function load(){try{let x=JSON.parse(localStorage.getItem(KEY));if(x)return x}catch(e){}return {parts:[],mode:"normal"}}
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
-function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function id(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function fmt(d){return d?new Date(d).toLocaleString(): "-"}
-function toast(s){const x=document.getElementById("toast");x.textContent=s;x.style.cssText="position:fixed;right:20px;bottom:20px;background:#111827;color:white;padding:12px 16px;border-radius:8px;z-index:99";setTimeout(()=>x.textContent="",2500)}
-function statusBadge(s){let c=s==="Completed"||s==="Closed"?"success":s==="Waiting Parts"||s==="Waiting Customer"||s==="Part Received"?"warning":s==="Urgent"?"danger":"info";return `<span class="badge ${c}">${esc(s)}</span>`}
-function render(){document.getElementById("pageTitle").textContent=page[0].toUpperCase()+page.slice(1).replaceAll("-"," ");document.getElementById("today").textContent=new Date().toLocaleString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"});document.getElementById("modeBadge").textContent=db.mode.toUpperCase();document.getElementById("modeBadge").className="badge "+(db.mode==="standby"?"danger":"success");document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));({dashboard, calls, parts, returns, guides, communication, calendar, reports, settings}[page])()}
-document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});
-document.getElementById("quickAdd").onclick=()=>addCall();
-document.getElementById("modeBtn").onclick=()=>{db.mode=db.mode==="normal"?"standby":"normal";save();render();toast("Mode changed")};
-document.getElementById("backupBtn").onclick=()=>download("-ce-backup.json",JSON.stringify(db,null,2),"application/json");
-document.getElementById("restoreInput").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{db=JSON.parse(r.result);save();render();toast("Backup restored")}catch(x){toast("Invalid backup")}};r.readAsText(f)};
-
-function dashboard(){
- const today=new Date().toISOString().slice(0,10), tc=db.calls.filter(x=>(x.appointment||"").slice(0,10)===today).length;
- const pending=db.calls.filter(x=>!["Completed","Closed"].includes(x.status)).length;
- const sla=db.calls.filter(x=>x.sla && !["Completed","Closed"].includes(x.status) && new Date(x.sla)<new Date()).length;
- const parts=db.parts.filter(x=>["Requested","Preparing","Ready","Collected"].includes(x.status)).length;
- const ret=db.returns.filter(x=>x.status!=="Returned").length;
- const co=db.calls.filter(x=>x.status==="Closeout").length;
- document.getElementById("content").innerHTML=`<div class="content-grid">
- <div class="cards">
- ${metric("📞","Today's Calls",tc)}${metric("⏳","Pending Calls",pending)}${metric("⚠️","SLA Alerts",sla)}${metric("📦","Parts Pending",parts)}${metric("🔄","Returns Pending",ret)}${metric("📝","Closeouts",co)}
- </div>
- <div class="grid2"><div class="panel"><h2>Today's Calls</h2>${callTable(db.calls.filter(x=>(x.appointment||"").slice(0,10)===today).slice(0,10))}</div>
- <div class="panel"><h2>Action Required</h2>${actionList()}</div></div>
- <div class="panel"><h2>Quick Actions</h2><div class="actions"><button class="btn primary" onclick="addCall()">＋ Add Call</button><button class="btn" onclick="addPart()">📦 Add Part Request</button><button class="btn" onclick="addReturn()">🔄 Add Return</button><button class="btn" onclick="addGuide()">📝 Add Guide</button></div></div>
- </div>`;
-}
+function fmt(v){return v?new Date(v).toLocaleString():"-"}
+function badge(s){let c=["Installed","Returned","Received by Logistics"].includes(s)?"green":["Return Required","Ready","Collected","Received"].includes(s)?"yellow":["Cancelled"].includes(s)?"red":"blue";return `<span class="badge ${c}">${esc(s)}</span>`}
 function metric(i,t,n){return `<div class="card metric"><small>${i} ${t}</small><strong>${n}</strong></div>`}
-function actionList(){let a=[];db.calls.filter(x=>!["Completed","Closed"].includes(x.status)).slice(0,6).forEach(x=>a.push(`<div class="statline"><span>${esc(x.sr)} — ${esc(x.status)}</span><b>${esc(x.nextAction||"Follow-up")}</b></div>`));db.returns.filter(x=>x.status!=="Returned").slice(0,3).forEach(x=>a.push(`<div class="statline"><span>Return ${esc(x.part)}</span><b class="danger-text">Pending</b></div>`));return a.join("")||`<div class="empty">No urgent actions 🎉</div>`}
-function callTable(arr){if(!arr.length)return `<div class="empty">No calls recorded.</div>`;return `<div class="table-wrap"><table class="table"><thead><tr><th>SR</th><th>Call</th><th>Appointment</th><th>Status</th><th></th></tr></thead><tbody>${arr.map(x=>`<tr><td>${esc(x.sr)}</td><td>${esc(x.type)}</td><td>${esc(fmt(x.appointment))}</td><td>${statusBadge(x.status)}</td><td><button class="btn" onclick="viewCall('${x.id}')">Open</button></td></tr>`).join("")}</tbody></table></div>`}
-
-function calls(){
- document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><div class="toolbar"><input id="callSearch" placeholder="Search SR, customer, site..." oninput="filterCalls()"><select id="callStatus" onchange="filterCalls()"><option value="">All statuses</option><option>New</option><option>Confirmed</option><option>Traveling</option><option>Arrived</option><option>Troubleshooting</option><option>Waiting Parts</option><option>Waiting Customer</option><option>Part Received</option><option>Installation</option><option>Testing</option><option>Closeout</option><option>Completed</option><option>Closed</option></select><button class="btn primary" onclick="addCall()">＋ Add Call</button></div><div id="callsTable">${callTable(db.calls)}</div></div></div>`;
-}
-function filterCalls(){let q=document.getElementById("callSearch").value.toLowerCase(),s=document.getElementById("callStatus").value;let a=db.calls.filter(x=>(!s||x.status===s)&&JSON.stringify(x).toLowerCase().includes(q));document.getElementById("callsTable").innerHTML=callTable(a)}
-function addCall(existing={}){openModal(existing.id?"Edit Call":"Add Call",callForm(existing),()=>{const f=readForm("callForm");if(!f.sr)return toast("SR number is required");if(existing.id)Object.assign(db.calls.find(x=>x.id===existing.id),f);else db.calls.push({id:uid("c"),...f,created:new Date().toISOString(),checklist:[]});save();closeModal();render();toast("Call saved")})}
-function callForm(x={}){return `<form id="callForm" class="form">
-${field("SR Number","sr",x.sr)}${field("Call Type","type",x.type,"select",["ATM Fault","Card Reader Replacement","EPP Replacement","Preventive Maintenance","Software Reload","Cash Dispenser","Network/NIC","Other"])}
-${field("Customer","customer",x.customer)}${field("Site / Location","site",x.site)}${field("Appointment","appointment",x.appointment,"datetime-local")}${field("SLA","sla",x.sla,"datetime-local")}
-${field("Priority","priority",x.priority||"Normal","select",["Normal","Urgent","High","Low"])}${field("Status","status",x.status||"New","select",["New","Confirmed","Traveling","Arrived","Troubleshooting","Waiting Parts","Waiting Customer","Part Received","Installation","Testing","Closeout","Completed","Closed"])}
-${field("Customer Contact","contact",x.contact)}${field("Parts Required","partsRequired",x.partsRequired)}${field("Next Action","nextAction",x.nextAction)}${field("Next Follow-up","followup",x.followup,"datetime-local")}
-${field("Diagnosis / Action Taken","action",x.action,"textarea",[],"full")}${field("Remarks","remarks",x.remarks,"textarea",[],"full")}
-</form>`}
-function viewCall(id){const x=db.calls.find(c=>c.id===id);if(!x)return;const guide=db.guides.find(g=>g.type===x.type)||db.guides.find(g=>x.type?.toLowerCase().includes(g.type?.toLowerCase()));let checks=x.checklist||guide?.items.map(()=>false)||[];openModal("Call "+x.sr,`<div class="actions"><button class="btn primary" onclick="addCall(db.calls.find(c=>c.id==='${id}'))">✏ Edit</button><button class="btn" onclick="copyCloseout('${id}')">📋 Copy Closeout</button><button class="btn" onclick="printCall('${id}')">🖨 Print</button></div><hr><div class="grid2"><div><div class="statline"><span>Customer</span><b>${esc(x.customer)}</b></div><div class="statline"><span>Site</span><b>${esc(x.site)}</b></div><div class="statline"><span>Type</span><b>${esc(x.type)}</b></div><div class="statline"><span>Status</span><b>${statusBadge(x.status)}</b></div><div class="statline"><span>Appointment</span><b>${esc(fmt(x.appointment))}</b></div></div><div><h3>Closeout Checklist</h3><div class="checklist">${(guide?.items||[]).map((it,i)=>`<label class="checkitem"><input type="checkbox" ${checks[i]?"checked":""} onchange="toggleCheck('${id}',${i},this.checked)"> ${esc(it)}</label>`).join("")||"<p>No guide assigned.</p>"}</div></div></div><h3>Closeout</h3><div class="closeout">${esc(generateCloseout(x,guide))}</div>`,`noop`)}
-function toggleCheck(id,i,v){let x=db.calls.find(c=>c.id===id);if(!x.checklist)x.checklist=[];x.checklist[i]=v;save();toast(v?"Checklist updated":"Checklist item unchecked")}
-function generateCloseout(x,guide){let lines=[];if(x.action)lines.push(x.action);lines.push(`SR ${x.sr}: ${x.type} activity completed at ${x.site||"site"}.`);if(x.partsRequired)lines.push(`Parts: ${x.partsRequired}.`);lines.push(`System/ATM status: ${x.status==="Completed"||x.status==="Closed"?"Operational / activity completed":"Pending — refer to current call status."}`);return lines.join(" ")}
-function copyCloseout(id){const x=db.calls.find(c=>c.id===id);navigator.clipboard?.writeText(generateCloseout(x));toast("Closeout copied")}
-function printCall(id){const x=db.calls.find(c=>c.id===id);let w=window.open("","_blank");w.document.write(`<h2>CE Call Closeout</h2><p>${esc(generateCloseout(x))}</p>`);w.print()}
-
+function render(){document.getElementById("title").textContent=page[0].toUpperCase()+page.slice(1);document.getElementById("date").textContent=new Date().toLocaleString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"});document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.page===page));({dashboard,parts,requests,receiving,installation,returns,history,reports,settings}[page])()}
+document.querySelectorAll(".nav").forEach(x=>x.onclick=()=>{page=x.dataset.page;render()});
+document.getElementById("quickAdd").onclick=()=>editPart();
+document.getElementById("backup").onclick=()=>download("nvi-parts-backup.json",JSON.stringify(db,null,2),"application/json");
+document.getElementById("restore").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=JSON.parse(r.result);save();render();toast("Backup restored")}catch(x){toast("Invalid backup")}};r.readAsText(f)};
+function dashboard(){
+let a=db.parts, counts=s=>a.filter(x=>x.status===s).length;
+document.getElementById("content").innerHTML=`<div class="content"><div class="cards">
+${metric("📦","Total Parts",a.length)}${metric("📋","Requested",counts("Requested"))}${metric("🚚","Ready/Collected",counts("Ready")+counts("Collected"))}${metric("📥","Received",counts("Received"))}${metric("🔧","Installed",counts("Installed"))}${metric("🔄","Return Required",counts("Return Required"))}${metric("✅","Returned",counts("Returned")+counts("Received by Logistics"))}
+</div><div class="grid2"><div class="panel"><h2>Parts Requiring Action</h2>${actionTable()}</div><div class="panel"><h2>Part Movement</h2><div class="flow"><div>Requested</div><div>Logistics</div><div>Received</div><div>Installed</div><div>Removed</div><div>Returned</div><div>Logistics ✓</div></div><p class="muted">Each part can be followed from request to final logistics receipt.</p></div></div><div class="panel"><h2>Recent Parts</h2>${table(a.slice().sort((x,y)=>new Date(y.updated||y.created)-new Date(x.updated||x.created)).slice(0,10))}</div></div>`}
+function actionTable(){let a=db.parts.filter(x=>!["Returned","Received by Logistics","Cancelled","Installed"].includes(x.status));return a.length?table(a.slice(0,8)):`<div class="empty">No outstanding parts 🎉</div>`}
+function table(a){if(!a.length)return `<div class="empty">No records found.</div>`;return `<div class="table-wrap"><table class="table"><thead><tr><th>Request</th><th>SR</th><th>Part</th><th>Part No.</th><th>Serial</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody>${a.map(x=>`<tr><td>${esc(x.requestNo)}</td><td>${esc(x.sr)}</td><td>${esc(x.part)}</td><td>${esc(x.partNo)}</td><td>${esc(x.newSerial||"-")}</td><td>${badge(x.status)}</td><td>${esc(fmt(x.updated||x.created))}</td><td><button class="btn" onclick="view('${x.id}')">Open</button></td></tr>`).join("")}</tbody></table></div>`}
 function parts(){
- document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><div class="toolbar"><input id="partSearch" placeholder="Search part, SR, serial..." oninput="filterParts()"><button class="btn primary" onclick="addPart()">＋ Part Request</button></div><div id="partsTable">${partsTable(db.parts)}</div></div></div>`;
-}
-function partsTable(a){if(!a.length)return `<div class="empty">No part requests recorded.</div>`;return `<div class="table-wrap"><table class="table"><thead><tr><th>Request</th><th>SR</th><th>Part</th><th>Part No.</th><th>Qty</th><th>Status</th><th>Requested</th><th></th></tr></thead><tbody>${a.map(x=>`<tr><td>${esc(x.requestNo)}</td><td>${esc(x.sr)}</td><td>${esc(x.part)}</td><td>${esc(x.partNo)}</td><td>${x.qty}</td><td>${statusBadge(x.status)}</td><td>${esc(fmt(x.requestDate))}</td><td><button class="btn" onclick="addPart(db.parts.find(p=>p.id==='${x.id}'))">Edit</button></td></tr>`).join("")}</tbody></table></div>`}
-function filterParts(){let q=document.getElementById("partSearch").value.toLowerCase();document.getElementById("partsTable").innerHTML=partsTable(db.parts.filter(x=>JSON.stringify(x).toLowerCase().includes(q)))}
-function addPart(existing={}){openModal(existing.id?"Edit Part Request":"Part Request",`<form id="partForm" class="form">${field("Request No.","requestNo",existing.requestNo||("PR-"+Date.now().toString().slice(-6)))}${field("SR Number","sr",existing.sr)}${field("Part Description","part",existing.part)}${field("Part Number","partNo",existing.partNo)}${field("Quantity","qty",existing.qty||1,"number")}${field("Reason","reason",existing.reason)}${field("Request Date","requestDate",existing.requestDate||new Date().toISOString(),"datetime-local")}${field("Expected Date","expectedDate",existing.expectedDate,"datetime-local")}${field("Status","status",existing.status||"Requested","select",["Requested","Approved","Preparing","Ready","Collected","Delivered","Installed","Cancelled"])}${field("Received Date","receivedDate",existing.receivedDate,"datetime-local")}${field("New Serial","newSerial",existing.newSerial)}${field("Remarks","remarks",existing.remarks,"textarea",[],"full")}</form>`,()=>{const f=readForm("partForm");if(!f.sr||!f.part)return toast("SR and part are required");if(existing.id)Object.assign(db.parts.find(p=>p.id===existing.id),f);else db.parts.push({id:uid("p"),...f});save();closeModal();render();toast("Part saved")})}
-
-function returns(){
- document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><div class="toolbar"><input id="retSearch" placeholder="Search return, SR, serial..." oninput="filterReturns()"><button class="btn primary" onclick="addReturn()">＋ Add Return</button></div><div id="retTable">${returnTable(db.returns)}</div></div></div>`;
-}
-function returnTable(a){if(!a.length)return `<div class="empty">No return records.</div>`;return `<div class="table-wrap"><table class="table"><thead><tr><th>Return</th><th>SR</th><th>Part</th><th>Old Serial</th><th>Status</th><th>Removed</th><th>Returned</th><th></th></tr></thead><tbody>${a.map(x=>`<tr><td>${esc(x.returnNo)}</td><td>${esc(x.sr)}</td><td>${esc(x.part)}</td><td>${esc(x.serial)}</td><td>${statusBadge(x.status)}</td><td>${esc(fmt(x.removedDate))}</td><td>${esc(fmt(x.returnedDate))}</td><td><button class="btn" onclick="addReturn(db.returns.find(r=>r.id==='${x.id}'))">Edit</button></td></tr>`).join("")}</tbody></table></div>`}
-function filterReturns(){let q=document.getElementById("retSearch").value.toLowerCase();document.getElementById("retTable").innerHTML=returnTable(db.returns.filter(x=>JSON.stringify(x).toLowerCase().includes(q)))}
-function addReturn(existing={}){openModal(existing.id?"Edit Return":"Part Return",`<form id="returnForm" class="form">${field("Return No.","returnNo",existing.returnNo||("RT-"+Date.now().toString().slice(-6)))}${field("SR Number","sr",existing.sr)}${field("Part","part",existing.part)}${field("Part Number","partNo",existing.partNo)}${field("Old Serial","serial",existing.serial)}${field("New Serial","newSerial",existing.newSerial)}${field("Removed Date","removedDate",existing.removedDate||new Date().toISOString(),"datetime-local")}${field("Status","status",existing.status||"Ready for Return","select",["Ready for Return","Packed","Collected","Returned","Received by Logistics"])}${field("Return Date","returnedDate",existing.returnedDate,"datetime-local")}${field("Received By","receivedBy",existing.receivedBy)}${field("Logistics Reference","logRef",existing.logRef)}${field("Condition","condition",existing.condition,"select",["Used","Defective","Damaged","Good","Unknown"])}${field("Remarks","remarks",existing.remarks,"textarea",[],"full")}</form>`,()=>{const f=readForm("returnForm");if(!f.sr||!f.part)return toast("SR and part are required");if(existing.id)Object.assign(db.returns.find(r=>r.id===existing.id),f);else db.returns.push({id:uid("r"),...f});save();closeModal();render();toast("Return saved")})}
-
-function guides(){
- document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><div class="toolbar"><button class="btn primary" onclick="addGuide()">＋ New Guide</button></div>${db.guides.map(g=>`<div class="template"><h3>${esc(g.name)}</h3><p class="muted">Call type: ${esc(g.type)} · ${g.items.length} steps</p><div class="actions"><button class="btn" onclick="viewGuide('${g.id}')">View</button><button class="btn" onclick="addGuide(db.guides.find(x=>x.id==='${g.id}'))">Edit</button></div></div>`).join("")}</div></div>`;
-}
-function viewGuide(id){let g=db.guides.find(x=>x.id===id);openModal(g.name,`<div class="checklist">${g.items.map(i=>`<div class="checkitem">☐ ${esc(i)}</div>`).join("")}</div>`,"noop")}
-function addGuide(existing={}){openModal(existing.id?"Edit Guide":"New Closeout Guide",`<form id="guideForm" class="form">${field("Guide Name","name",existing.name)}${field("Call Type","type",existing.type)}${field("Checklist Items","items",(existing.items||[]).join("\\n"),"textarea",[],"full")}</form>`,()=>{let f=readForm("guideForm");f.items=f.items.split("\\n").map(x=>x.trim()).filter(Boolean);if(!f.name||!f.type||!f.items.length)return toast("Complete guide fields");if(existing.id)Object.assign(db.guides.find(g=>g.id===existing.id),f);else db.guides.push({id:uid("g"),...f});save();closeModal();render();toast("Guide saved")})}
-
-function communication(){
- document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><h2>Message Templates</h2>${templates.map((t,i)=>`<div class="template"><h3>${esc(t.name)}</h3><p>${esc(t.text)}</p><div class="actions"><button class="btn primary" onclick="copyTemplate(${i})">Copy</button></div></div>`).join("")}</div></div>`;
-}
-function copyTemplate(i){navigator.clipboard?.writeText(templates[i].text);toast("Template copied")}
-function calendar(){
- let d=new Date(), first=new Date(d.getFullYear(),d.getMonth(),1), last=new Date(d.getFullYear(),d.getMonth()+1,0),days=[];for(let i=0;i<first.getDay();i++)days.push(`<div></div>`);for(let n=1;n<=last.getDate();n++){let date=new Date(d.getFullYear(),d.getMonth(),n).toISOString().slice(0,10),ev=db.calls.filter(c=>(c.appointment||"").slice(0,10)===date).slice(0,3);days.push(`<div class="day"><b>${n}</b>${ev.map(x=>`<div class="event">${esc(x.sr)} · ${esc(x.type)}</div>`).join("")}</div>`)}document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><h2>${d.toLocaleString(undefined,{month:"long",year:"numeric"})}</h2><div class="calendar">${days.join("")}</div></div></div>`;
-}
-function reports(){
- let completed=db.calls.filter(x=>["Completed","Closed"].includes(x.status)).length, total=db.calls.length, installs=db.parts.filter(x=>x.status==="Installed").length, returned=db.returns.filter(x=>x.status==="Returned"||x.status==="Received by Logistics").length;
- document.getElementById("content").innerHTML=`<div class="content-grid"><div class="cards">${metric("📞","Total Calls",total)}${metric("🟢","Completed",completed)}${metric("📦","Installed Parts",installs)}${metric("🔄","Returned Parts",returned)}</div><div class="grid2"><div class="panel"><h2>Call Status</h2>${["New","Confirmed","Traveling","Arrived","Troubleshooting","Waiting Parts","Waiting Customer","Testing","Closeout","Completed","Closed"].map(s=>{let n=db.calls.filter(x=>x.status===s).length,p=total?n/total*100:0;return `<div class="statline"><span>${s}</span><b>${n}</b></div><div class="progress"><span style="width:${p}%"></span></div>`}).join("")}</div><div class="panel"><h2>Parts & Returns</h2><div class="statline"><span>Requests</span><b>${db.parts.length}</b></div><div class="statline"><span>Pending returns</span><b>${db.returns.filter(x=>x.status!=="Returned"&&x.status!=="Received by Logistics").length}</b></div><div class="statline"><span>Completed returns</span><b>${returned}</b></div></div></div></div>`;
-}
-function settings(){
- document.getElementById("content").innerHTML=`<div class="content-grid"><div class="panel"><h2>System Settings</h2><p class="muted">Data is stored in this browser using local storage. Use Backup Data regularly to protect your records.</p><div class="actions"><button class="btn primary" onclick="download('-ce-template.json',JSON.stringify({calls:[],parts:[],returns:[],guides:defaultGuides,logs:[],mode:'normal'},null,2),'application/json')">Download Empty Template</button><button class="btn danger" onclick="clearData()">Reset All Data</button></div></div></div>`;
-}
-function clearData(){if(confirm("Delete all locally stored CE data?")){localStorage.removeItem(KEY);db=load();render();toast("Data reset")}}
-function field(label,name,val="",type="text",options=[],extra=""){let v=val||"";if(type==="select")return `<div class="field ${extra}"><label>${label}</label><select name="${name}">${options.map(o=>`<option ${String(o)===String(v)?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;return `<div class="field ${extra}"><label>${label}</label>${type==="textarea"?`<textarea name="${name}" rows="4">${esc(v)}</textarea>`:`<input type="${type}" name="${name}" value="${esc(v)}">`}</div>`}
-function readForm(id){let o={};new FormData(document.getElementById(id)).forEach((v,k)=>o[k]=v);return o}
-function openModal(title,body,onSave){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body+(onSave!=="noop"?`<div class="actions" style="margin-top:16px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="modalSave">Save</button></div>`:"");document.getElementById("modal").classList.remove("hidden");if(onSave!=="noop")document.getElementById("modalSave").onclick=onSave}
+document.getElementById("content").innerHTML=`<div class="content"><div class="panel"><div class="toolbar"><input id="search" placeholder="Search SR, part, serial, customer..." oninput="searchParts()"><select id="filter" onchange="searchParts()"><option value="">All Statuses</option>${statuses.map(s=>`<option>${s}</option>`).join("")}</select><button class="btn primary" onclick="editPart()">＋ Add Part</button></div><div id="pt">${table(db.parts)}</div></div></div>`}
+function searchParts(){let q=document.getElementById("search").value.toLowerCase(),s=document.getElementById("filter").value;document.getElementById("pt").innerHTML=table(db.parts.filter(x=>(!s||x.status===s)&&JSON.stringify(x).toLowerCase().includes(q)))}
+function requests(){partsPage("Requests",x=>x.status==="Requested"||x.status==="Approved"||x.status==="Preparing"||x.status==="Ready")}
+function receiving(){partsPage("Receiving",x=>["Ready","Collected","Received"].includes(x.status))}
+function installation(){partsPage("Installation",x=>x.status==="Received"||x.status==="Installed"||x.status==="Return Required")}
+function returns(){partsPage("Returns",x=>["Return Required","Returned","Received by Logistics"].includes(x.status))}
+function partsPage(title,fn){document.getElementById("content").innerHTML=`<div class="content"><div class="panel"><div class="toolbar"><input id="subsearch" placeholder="Search..." oninput="subSearch()"><button class="btn primary" onclick="editPart()">＋ Add Part</button></div><div id="subtable">${table(db.parts.filter(fn))}</div></div></div>`;window.subFilter=fn}
+function subSearch(){let q=document.getElementById("subsearch").value.toLowerCase();document.getElementById("subtable").innerHTML=table(db.parts.filter(x=>window.subFilter(x)&&JSON.stringify(x).toLowerCase().includes(q)))}
+function history(){
+document.getElementById("content").innerHTML=`<div class="content"><div class="panel"><h2>Part History</h2><div class="toolbar"><input id="hist" placeholder="Enter SR, serial, part no. or request no." oninput="findHistory()"></div><div id="histResult"><div class="empty">Search for a part to see its complete movement history.</div></div></div></div>`}
+function findHistory(){let q=document.getElementById("hist").value.toLowerCase();let a=db.parts.filter(x=>JSON.stringify(x).toLowerCase().includes(q));document.getElementById("histResult").innerHTML=a.map(historyCard).join("")||`<div class="empty">No matching part.</div>`}
+function historyCard(x){let events=[["Requested",x.requestDate],["Logistics Ready",x.readyDate],["Received by CE",x.receivedDate],["Installed",x.installedDate],["Old Part Removed",x.removedDate],["Returned to Logistics",x.returnedDate],["Logistics Received",x.logisticsReceivedDate]];return `<div class="search-result"><h3>${esc(x.part)} <small>${esc(x.partNo)}</small></h3><p><b>SR:</b> ${esc(x.sr)} &nbsp; <b>Request:</b> ${esc(x.requestNo)} &nbsp; <b>Status:</b> ${badge(x.status)}</p><div class="timeline">${events.filter(e=>e[1]).map(e=>`<div><b>${e[0]}</b><br>${fmt(e[1])}</div>`).join("")}</div><p><b>New Serial:</b> ${esc(x.newSerial||"-")} &nbsp; <b>Old Serial:</b> ${esc(x.oldSerial||"-")}</p></div>`}
+function editPart(existing={}){
+let x=existing;
+openModal(x.id?"Edit Part":"Add Part",`<form id="partForm" class="form">
+${field("Request No.","requestNo",x.requestNo||"PR-"+Date.now().toString().slice(-6))}
+${field("SR Number","sr",x.sr)}
+${field("Customer","customer",x.customer)}
+${field("Site / Location","site",x.site)}
+${field("Part Description","part",x.part)}
+${field("Part Number","partNo",x.partNo)}
+${field("Quantity","qty",x.qty||1,"number")}
+${field("Reason / Failure","reason",x.reason)}
+${field("Status","status",x.status||"Requested","select",statuses)}
+${field("New Part Serial","newSerial",x.newSerial)}
+${field("Old Part Serial","oldSerial",x.oldSerial)}
+${field("Request Date","requestDate",x.requestDate||now())}
+${field("Logistics Ready Date","readyDate",x.readyDate)}
+${field("Received by CE","receivedDate",x.receivedDate)}
+${field("Installed Date","installedDate",x.installedDate)}
+${field("Old Part Removed","removedDate",x.removedDate)}
+${field("Return Date","returnedDate",x.returnedDate)}
+${field("Logistics Received Date","logisticsReceivedDate",x.logisticsReceivedDate)}
+${field("Logistics Reference","logRef",x.logRef)}
+${field("Received / Returned By","receiver",x.receiver)}
+${field("Condition","condition",x.condition,"select",["New","Good","Defective","Damaged","Unknown"])}
+${field("Remarks","remarks",x.remarks,"textarea",[],"full")}
+</form>`,()=>{let f=read("partForm");if(!f.sr||!f.part)return toast("SR number and part are required");f.updated=now();if(x.id)Object.assign(db.parts.find(p=>p.id===x.id),f);else db.parts.push({id:id("p"),created:now(),...f});save();closeModal();render();toast("Part saved")})}
+function view(idv){let x=db.parts.find(p=>p.id===idv);if(!x)return;openModal(`Part ${x.part}`,`<div class="actions"><button class="btn primary" onclick="editPart(db.parts.find(p=>p.id==='${x.id}'))">✏ Edit</button><button class="btn" onclick="copySummary('${x.id}')">📋 Copy Summary</button><button class="btn" onclick="printPart('${x.id}')">🖨 Print</button><button class="btn danger" onclick="deletePart('${x.id}')">Delete</button></div><hr><div class="grid2"><div><div class="stat"><span>SR</span><b>${esc(x.sr)}</b></div><div class="stat"><span>Customer</span><b>${esc(x.customer)}</b></div><div class="stat"><span>Site</span><b>${esc(x.site)}</b></div><div class="stat"><span>Part No.</span><b>${esc(x.partNo)}</b></div><div class="stat"><span>Status</span><b>${badge(x.status)}</b></div><div class="stat"><span>New Serial</span><b>${esc(x.newSerial||"-")}</b></div><div class="stat"><span>Old Serial</span><b>${esc(x.oldSerial||"-")}</b></div></div><div><h3>Movement</h3><div class="timeline">${[["Requested",x.requestDate],["Logistics Ready",x.readyDate],["Received",x.receivedDate],["Installed",x.installedDate],["Removed",x.removedDate],["Returned",x.returnedDate],["Logistics Received",x.logisticsReceivedDate]].filter(e=>e[1]).map(e=>`<div><b>${e[0]}</b><br>${fmt(e[1])}</div>`).join("")||"<div>No movement dates recorded.</div>"}</div></div></div><h3>Notes</h3><div class="closeout">${esc(x.remarks||"No remarks.")}</div>`,"noop")}
+function summary(x){return `Part Movement Summary\nRequest: ${x.requestNo}\nSR: ${x.sr}\nCustomer: ${x.customer||"-"}\nSite: ${x.site||"-"}\nPart: ${x.part}\nPart No.: ${x.partNo||"-"}\nNew Serial: ${x.newSerial||"-"}\nOld Serial: ${x.oldSerial||"-"}\nStatus: ${x.status}\nRequested: ${fmt(x.requestDate)}\nReady: ${fmt(x.readyDate)}\nReceived: ${fmt(x.receivedDate)}\nInstalled: ${fmt(x.installedDate)}\nRemoved: ${fmt(x.removedDate)}\nReturned: ${fmt(x.returnedDate)}\nLogistics Received: ${fmt(x.logisticsReceivedDate)}\nLogistics Ref: ${x.logRef||"-"}\nRemarks: ${x.remarks||"-"}`}
+function copySummary(idv){navigator.clipboard?.writeText(summary(db.parts.find(p=>p.id===idv)));toast("Summary copied")}
+function printPart(idv){let x=db.parts.find(p=>p.id===idv),w=window.open("","_blank");w.document.write("<pre>"+esc(summary(x))+"</pre>");w.print()}
+function deletePart(idv){if(confirm("Delete this part record?")){db.parts=db.parts.filter(x=>x.id!==idv);save();closeModal();render();toast("Deleted")}}
+function reports(){let a=db.parts,n=a.length,byStatus=s=>a.filter(x=>x.status===s).length;document.getElementById("content").innerHTML=`<div class="content"><div class="cards">${metric("📦","Total",n)}${metric("📋","Requested",byStatus("Requested"))}${metric("📥","Received",byStatus("Received"))}${metric("🔧","Installed",byStatus("Installed"))}${metric("🔄","Return Required",byStatus("Return Required"))}${metric("✅","Returned",byStatus("Returned"))}${metric("🏁","Logistics Received",byStatus("Received by Logistics"))}</div><div class="grid2"><div class="panel"><h2>Status Distribution</h2>${statuses.map(s=>{let c=byStatus(s),p=n?c/n*100:0;return `<div class="stat"><span>${s}</span><b>${c}</b></div><div class="progress"><span style="width:${p}%"></span></div>`}).join("")}</div><div class="panel"><h2>Traceability</h2><div class="stat"><span>Records with new serial</span><b>${a.filter(x=>x.newSerial).length}</b></div><div class="stat"><span>Records with old serial</span><b>${a.filter(x=>x.oldSerial).length}</b></div><div class="stat"><span>Return required</span><b>${a.filter(x=>x.status==="Return Required").length}</b></div><div class="stat"><span>Completed return cycle</span><b>${a.filter(x=>x.logisticsReceivedDate).length}</b></div></div></div></div>`}
+function settings(){document.getElementById("content").innerHTML=`<div class="content"><div class="panel"><h2>Settings & Data</h2><p class="muted">All records are stored locally in this browser. Backup regularly.</p><div class="actions"><button class="btn primary" onclick="download('nvi-parts-empty.json',JSON.stringify({parts:[],mode:'normal'},null,2),'application/json')">Download Empty Template</button><button class="btn danger" onclick="resetData()">Reset All Data</button></div></div></div>`}
+function field(label,name,val="",type="text",opts=[],extra=""){if(type==="select")return `<div class="field ${extra}"><label>${label}</label><select name="${name}">${opts.map(o=>`<option ${o===val?"selected":""}>${esc(o)}</option>`).join("")}</select></div>`;return `<div class="field ${extra}"><label>${label}</label>${type==="textarea"?`<textarea name="${name}" rows="4">${esc(val)}</textarea>`:`<input type="${type}" name="${name}" value="${esc(val)}">`}</div>`}
+function now(){return new Date().toISOString().slice(0,16)}
+function read(idv){let o={};new FormData(document.getElementById(idv)).forEach((v,k)=>o[k]=v);return o}
+function openModal(title,body,saveFn){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body+(saveFn!=="noop"?`<div class="actions" style="margin-top:16px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" id="saveModal">Save</button></div>`:"");document.getElementById("modal").classList.remove("hidden");if(saveFn!=="noop")document.getElementById("saveModal").onclick=saveFn}
 function closeModal(){document.getElementById("modal").classList.add("hidden")}
-function download(name,data,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
-render();''',
+function toast(s){let x=document.getElementById("toast");x.textContent=s;x.style.cssText="position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:12px 16px;border-radius:8px;z-index:99";setTimeout(()=>x.textContent="",2200)}
+function download(name,data,type){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+function resetData(){if(confirm("Delete all parts data?")){localStorage.removeItem(KEY);db=load();render();toast("Data reset")}}
+render();'''
 
-"README.md": r'''#  Customer Engineer Work Management System
+readme = r'''# NVI Parts Management System
 
-A mobile-friendly, browser-based personal work control system for Customer Engineers.
+Standalone parts-only management system for Customer Engineers and logistics.
+
+## Workflow
+
+REQUESTED → LOGISTICS READY → COLLECTED → RECEIVED BY CE → INSTALLED → OLD PART REMOVED → RETURNED → RECEIVED BY LOGISTICS
 
 ## Modules
 
 - Dashboard
-- Call management
-- Parts request/logistics tracking
-- Parts return tracking
-- Serial-number traceability
-- Closeout guides and checklists
-- Closeout text generation
-- WhatsApp/email templates
-- Calendar
+- Parts Register
+- Logistics Requests
+- Receiving
+- Installation
+- Returns
+- Part History / Traceability
 - Reports
-- Normal / Standby mode
-- JSON backup and restore
-- Offline-first local browser storage
+- Search and filters
+- Serial number tracking
+- Request/return references
+- Backup and restore
+- Mobile responsive
+- Offline browser storage
 
-## Installation
+## GitHub Pages
 
-No server is required.
+Upload `index.html`, `style.css`, and `app.js` to a GitHub repository and enable GitHub Pages.
 
-1. Upload `index.html`, `style.css`, and `app.js` to a GitHub repository.
-2. Enable GitHub Pages.
-3. Open the published page on your phone or PC.
-4. Use **Backup Data** regularly.
+## Data protection
 
-## Important
+The system uses browser local storage. Use **Backup Data** frequently. Do not store confidential company information unless your company policy permits it.
 
-This application does not automatically access OFS, company email, or WhatsApp. It is intended as a personal control and documentation layer. Company systems should only be integrated through approved APIs/permissions.
-
-## Data
-
-Records are stored in the browser's local storage. Clearing browser site data can remove records. Always use Backup Data regularly.
+This application does not connect to or modify OFS/logistics systems automatically. It is a personal tracking layer.
 '''
-}
 
-for path, content in files.items():
-    (root/path).write_text(content, encoding="utf-8")
+for name, data in {"index.html":index,"style.css":style,"app.js":app,"README.md":readme}.items():
+    (root/name).write_text(data,encoding="utf-8")
 
-zip_path = Path("/mnt/data/_CE_Work_Management_System.zip")
-with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-    for p in root.rglob("*"):
-        z.write(p, p.relative_to(root.parent))
-
-print(f"Created: {zip_path}")
-print("Files:", ", ".join(files))
+zip_path=Path("/mnt/data/NVI_Parts_Management_System.zip")
+with zipfile.ZipFile(zip_path,"w",zipfile.ZIP_DEFLATED) as z:
+    for p in root.iterdir(): z.write(p,p.name)
+print(zip_path)
